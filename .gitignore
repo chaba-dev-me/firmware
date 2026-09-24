@@ -1,0 +1,6 @@
+# Local device defaults — NEVER commit. Copy secrets.example.h to secrets.h
+# and fill in your own WiFi credentials.
+secrets.h
+
+# Arduino IDE build output
+build/
