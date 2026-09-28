@@ -1,18 +1,21 @@
 # Chaba Device Firmware
 
-Arduino sketches for Chaba relay-control devices: WiFi + MQTT firmware that
-joins a local network, connects to an MQTT broker, applies `switch_on` /
-`switch_off` commands to relay outputs, and publishes device state. Everything
-is provisionable over USB serial — no reflashing to change WiFi, broker, or
-device identity.
+Arduino sketches for Chaba devices: WiFi + MQTT firmware that joins a local
+network, connects to an MQTT broker, and is provisionable over USB serial —
+no reflashing to change WiFi, broker, or device identity. Two device
+families ship here: **relay controllers** (apply `switch_on` / `switch_off`
+commands to relay outputs) and the **WiFi extender** (a NAT repeater that
+re-broadcasts the site network).
 
-Current firmware version: **0.4.8**.
+Current firmware versions: relay sketches **0.4.8**, extender **0.5.0**
+(independent version lines).
 
 ## Sketches
 
 | Sketch | Target | Purpose |
 |--------|--------|---------|
 | `firmware/esp32_chaba/` | ESP32-DevKitC WROOM (4 MB flash) | Production firmware. 4-channel relay board on GPIO 16/17/18/19 (active-low). |
+| `firmware/esp32c3_chaba_extender/` | ESP32-C3 (WROOM-02 class) / ESP32-C6 | WiFi range extender: joins the site's 2.4 GHz network as a station and re-broadcasts it (NAT repeater). Same serial CLI and bootstrap; no relays. See its `DESIGN.md`. |
 | `firmware/esp01_chaba/` | ESP-01 (ESP8266, 1 MB flash) | Personal-use port of the ESP32 firmware: single relay channel on GPIO 0/2, same MQTT topics and message formats. Not for production. |
 | `firmware/esp01_minimal_test/` | ESP-01 | Minimal bring-up / bisection sketch (LED + serial alive blips). Not part of the product. |
 
