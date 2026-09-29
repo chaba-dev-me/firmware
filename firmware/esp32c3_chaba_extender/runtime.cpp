@@ -44,7 +44,11 @@ void Runtime::start() {
     return;
   }
   if (!haveEnroll) {
-    Serial.println("runtime: NOTE no enroll.secret - bootstrap impossible; set via CLI if credentials are ever lost");
+    // Claim-once (migration 040): a never-bootstrapped device claims
+    // on its uid alone — "set id device, reset" IS the whole bench
+    // flow. The secret is optional hardening; only a claimed device
+    // needs it again (credential rotation).
+    Serial.println("runtime: no enroll.secret - first bootstrap claims on device uid alone");
   }
 
   // Blank ap.* means "mirror the uplink" (resolved inside WifiExtender).

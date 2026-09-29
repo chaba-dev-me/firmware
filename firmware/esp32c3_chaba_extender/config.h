@@ -110,4 +110,7 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // 0.5.1: post-associate bring-up spread one step per tick with flushed
 // forensic labels — v0.5.0 bootlooped (rst:0x8 TG1WDT) somewhere in the
 // transition block and its unflushed log died with it.
-#define FW_VERSION "0.5.1"
+// 0.5.2: the "no enroll.secret" note no longer claims bootstrap is
+// impossible — claim-once (migration 040) deploys on the device uid
+// alone, same as the relay firmware.
+#define FW_VERSION "0.5.2"
