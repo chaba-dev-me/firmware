@@ -137,4 +137,6 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // 0.5.3: STATUS_LED_PIN default per chip — the flat GPIO8 default
 // drove a FLASH data line on classic ESP32 (GPIO6-11 are the flash
 // chip) and TG1WDT-bootlooped the bench board in runtime.start().
-#define FW_VERSION "0.5.3"
+// 0.5.4: napt step asserted "Required to lock TCPIP core" — raw lwIP
+// ip_napt_enable now runs under LOCK_TCPIP_CORE (bench-verified).
+#define FW_VERSION "0.5.4"

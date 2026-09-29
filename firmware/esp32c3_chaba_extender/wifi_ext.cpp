@@ -5,6 +5,7 @@
 #include <WiFi.h>
 #include <WiFiAP.h>
 #include "lwip/lwip_napt.h"
+#include "lwip/tcpip.h"
 #include <esp_netif.h>
 
 WifiExtender wifiExt;
@@ -179,7 +180,15 @@ void WifiExtender::enableNapt() {
   // cores built with CONFIG_LWIP_IPV4_NAPT (arduino-esp32 >= 3.x ships
   // it enabled); the #if keeps older cores compiling — as a bridge
   // without routing, which is useless but loud in `show`.
+  //
+  // ip_napt_enable is RAW lwIP: it arms a sys_timeout, whose assert
+  // requires the caller to hold the TCPIP core lock (bench-verified
+  // 0.5.3: "assert failed: sys_timeout ... Required to lock TCPIP
+  // core functionality!"). The esp_netif_* calls elsewhere in this
+  // file lock internally; the raw napt calls must do it themselves.
+  LOCK_TCPIP_CORE();
   ip_napt_enable(static_cast<uint32_t>(WiFi.softAPIP()), 1);
+  UNLOCK_TCPIP_CORE();
   _naptEnabled = true;
   g_state.naptEnabled = true;
   Serial.println("wifi: NAT enabled on broadcast side");
@@ -230,7 +239,9 @@ void WifiExtender::resolveApLanConflict() {
     if ((cand & apMask) == apLan) continue;  // the colliding one
 #if defined(CONFIG_LWIP_IPV4_NAPT) && CONFIG_LWIP_IPV4_NAPT
     if (_naptEnabled) {
+      LOCK_TCPIP_CORE();
       ip_napt_enable(static_cast<uint32_t>(_apIp), 0);
+      UNLOCK_TCPIP_CORE();
       _naptEnabled = false;
       g_state.naptEnabled = false;
     }
