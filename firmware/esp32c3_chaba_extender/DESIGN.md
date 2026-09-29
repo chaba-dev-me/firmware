@@ -287,6 +287,30 @@ the relay firmware.
 Same as the relay sketches: `ArduinoJson` (7.x), `PubSubClient` (2.8).
 `WiFi`/`esp_netif`/`lwip` ship with the core.
 
+## Site deployment recommendations (bench-proven 2026-09-29)
+
+- **Give every extender its own SSID** (`set ap ssid <site>-ext`).
+  The mirror-ssid default invites sticky-roam: a client that roams
+  onto the extender keeps its lease from the real AP and ends up
+  "connected" with a dead gateway. Bench-verified failure mode.
+- **STA power-save is off** (`WiFi.setSleep(false)`) and must stay
+  off — modem sleep under an active AP causes beacon-loss disconnects
+  (the 0.5.5 flap). Post-associate `softAP` re-issue is equally
+  banned: reconfiguring the AP side can kick the just-associated STA
+  into a connect→drop loop (the 0.5.5 flood).
+- **Solid power is a requirement, not a nicety.** A weak USB port
+  reboot-looped the bench board silently (connect counter pinned at
+  #1 across thousands of boots). 1A+ adapter, good cable.
+- **DNS: the relay is the design, not a workaround.** The esp_netif
+  DHCP "DNS option" set is refused on this core
+  (`ESP_ERR_ESP_NETIF_INVALID_PARAMS`), so clients always get
+  192.168.4.1 as resolver and `dns_fwd` relays :53 to the uplink's
+  resolver (re-learned on every reconnect — a site that changes its
+  resolver heals itself). `status` shows fwd/replied counters: they
+  must track 1:1.
+- The classic ESP32 (D0WD) runs this sketch fine and is a valid
+  bench/dev target; production remains the C3/C6 line.
+
 ## Known limitations (v1, honest list)
 
 - Throughput: single-radio NAT repeater — expect single-digit Mbps
@@ -296,7 +320,9 @@ Same as the relay sketches: `ArduinoJson` (7.x), `PubSubClient` (2.8).
   extender). Outbound everything works; inbound needs port mapping.
 - Same-SSID mirror means phones may "sticky-roam" onto the extender
   from far away. If a site misbehaves, give the extender its own
-  SSID: `set ap ssid FarmWifi-ext` + `reset`.
+  SSID: `set ap ssid FarmWifi-ext` + `reset` (see the deployment
+  recommendations above — this is now the recommended setup, not a
+  workaround).
 - `factory` wipes the enrollment secret — re-provisioning after that
   needs the bench (same as the relay firmware).
 
