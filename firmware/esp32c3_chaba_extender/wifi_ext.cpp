@@ -32,12 +32,6 @@ void WifiExtender::runApStep() {
   switch (_apStep) {
     case AP_STEP_NONE:
       return;
-    case AP_STEP_REISSUE:
-      logStep("begin", "reissue-softap");
-      startAp();
-      logStep("done", "reissue-softap");
-      _apStep = AP_STEP_LAN;
-      return;
     case AP_STEP_LAN:
       logStep("begin", "lan-conflict");
       resolveApLanConflict();
@@ -75,15 +69,22 @@ void WifiExtender::tick() {
       _uplinkConnected = true;
       g_state.wifiConnected = true;
       _rssi = WiFi.RSSI();
-      Serial.print("wifi: uplink connected, IP ");
+      _connectCount++;
+      Serial.print("wifi: uplink connected (#");
+      Serial.print(_connectCount);
+      Serial.print("), IP ");
       Serial.print(WiFi.localIP());
       Serial.print(", channel ");
       Serial.println(WiFi.channel());
       Serial.flush();
-      // The radio just moved to the uplink's channel and the AP
-      // followed. Bring NAT and DNS up ONE STEP PER TICK — see the
-      // step-machine note above for why each step is bracketed.
-      _apStep = AP_STEP_REISSUE;
+      // NOTE: no softAP re-issue here. v0.5.4/0.5.5 re-issued softAP
+      // after every associate and the uplink flapped thousands of
+      // times (bench 2026-09-29): reconfiguring the AP side can kick
+      // the just-associated STA on the classic ESP32, making a
+      // self-sustaining connect→drop loop. The single-radio AP
+      // follows the STA channel on its own; NAT and DNS come up via
+      // the step machine, ONE STEP PER TICK (bracketed — see above).
+      _apStep = AP_STEP_LAN;
     }
     _rssi = WiFi.RSSI();
     g_state.wifiLastGoodMs = now;
@@ -145,6 +146,10 @@ void WifiExtender::begin(const char* uplinkSsid, const char* uplinkPass,
   }
 
   WiFi.mode(WIFI_AP_STA);
+  // Modem-sleep power save on the STA causes beacon-loss disconnects
+  // while the AP side is live — the other half of the 0.5.5 flapping.
+  // An extender is mains-powered; keep the radio always on.
+  WiFi.setSleep(false);
 
   Serial.print("wifi: uplink connecting to ");
   Serial.println(_uplinkSsid);

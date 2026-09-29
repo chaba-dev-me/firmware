@@ -153,4 +153,8 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // DNS forwarder (dns_fwd) relays :53 to the uplink resolver when the
 // push fails, so clients always get a working resolver. LED polarity
 // per chip (classic ESP32 GPIO2 is active-high).
-#define FW_VERSION "0.5.5"
+// 0.5.6: kill the uplink flap — the post-associate softAP re-issue
+// (kick-loop suspect #1) is gone and STA power-save is off (beacon
+// loss, suspect #2). Connect counter in the log measures any that
+// remains.
+#define FW_VERSION "0.5.6"

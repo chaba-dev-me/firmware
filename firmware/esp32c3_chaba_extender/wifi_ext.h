@@ -39,7 +39,6 @@ class WifiExtender {
   // plain Serial.println is lost in the TX ring buffer on reset.
   enum ApStep : uint8_t {
     AP_STEP_NONE = 0,
-    AP_STEP_REISSUE,   // re-issue softAP after the channel move
     AP_STEP_LAN,       // resolve uplink/AP subnet collision
     AP_STEP_NAPT,      // enable NAT on the AP address
     AP_STEP_DNS,       // point ap dhcp dns at the uplink resolver
@@ -64,6 +63,10 @@ class WifiExtender {
   bool _apStarted = false;
   IPAddress _apIp;
   ApStep _apStep = AP_STEP_NONE;
+  // Uplink associate/disassociate cycles since boot. A high count in
+  // a short session means the uplink is flapping — the first suspect
+  // for extended clients seeing "connected without internet".
+  uint32_t _connectCount = 0;
 
   bool _staConnecting = false;
   unsigned long _connectStartedMs = 0;
