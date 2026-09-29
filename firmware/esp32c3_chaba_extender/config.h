@@ -27,7 +27,16 @@
 #endif
 #endif
 
-#define STATUS_LED_ACTIVE_LOW 1
+#define STATUS_LED_ACTIVE_LOW_DEFAULT 1
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+// Classic ESP32 DevKit GPIO2 LED is active-HIGH.
+#undef STATUS_LED_ACTIVE_LOW_DEFAULT
+#define STATUS_LED_ACTIVE_LOW_DEFAULT 0
+#endif
+
+#ifndef STATUS_LED_ACTIVE_LOW
+#define STATUS_LED_ACTIVE_LOW STATUS_LED_ACTIVE_LOW_DEFAULT
+#endif
 
 // Uplink (station) behaviour — the CAPsMAN-controlled WiFi this device
 // joins as a client before re-broadcasting it.
@@ -139,4 +148,9 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // chip) and TG1WDT-bootlooped the bench board in runtime.start().
 // 0.5.4: napt step asserted "Required to lock TCPIP core" — raw lwIP
 // ip_napt_enable now runs under LOCK_TCPIP_CORE (bench-verified).
-#define FW_VERSION "0.5.4"
+// 0.5.5: ap dhcp dns push failed silently on the bench (no success
+// line) — every esp_netif return code is now logged, and a fallback
+// DNS forwarder (dns_fwd) relays :53 to the uplink resolver when the
+// push fails, so clients always get a working resolver. LED polarity
+// per chip (classic ESP32 GPIO2 is active-high).
+#define FW_VERSION "0.5.5"

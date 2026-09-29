@@ -7,6 +7,7 @@
 #include "lwip/lwip_napt.h"
 #include "lwip/tcpip.h"
 #include <esp_netif.h>
+#include "dns_fwd.h"
 
 WifiExtender wifiExt;
 
@@ -65,6 +66,7 @@ void WifiExtender::tick() {
   _lastTickMs = now;
 
   runApStep();
+  dnsFwd.tick();  // only running when the dhcp dns option push failed
 
   // ---- uplink (station) ----
   wl_status_t s = WiFi.status();
@@ -96,6 +98,7 @@ void WifiExtender::tick() {
       _naptEnabled = false;  // re-enabled on reconnect
       g_state.naptEnabled = false;
       _apStep = AP_STEP_NONE;
+      dnsFwd.stop();  // nothing to resolve towards; steps rerun on reconnect
       g_state.stateDirty = true;
     }
     if (!_staConnecting) {
@@ -200,23 +203,51 @@ void WifiExtender::enableNapt() {
 }
 
 // Point the AP's DHCP "DNS server" option at the uplink's DNS.
-// Without this, extended clients can end up offered the AP's own IP
-// as resolver — and there is no DNS proxy on the device.
+// Without this, extended clients end up offered the AP's own IP as
+// resolver — and there is no DNS proxy on the device, so every phone
+// reports "no internet" (its captive check is by hostname). The esp
+// netif calls each log their result: 0.5.4's silent early-returns
+// made this failure invisible (bench: the success line never came).
+// If the option push fails, the dns_fwd fallback takes over :53.
 void WifiExtender::pushDhcpDns() {
   esp_netif_t* ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
-  if (ap == nullptr) return;
+  if (ap == nullptr) {
+    Serial.println("wifi: ap dhcp dns FAILED: no WIFI_AP_DEF netif; starting dns_fwd fallback");
+    dnsFwd.begin(WiFi.dnsIP(0));
+    return;
+  }
   esp_netif_dns_info_t dns = {};
   dns.ip.type = ESP_IPADDR_TYPE_V4;
   dns.ip.u_addr.ip4.addr = static_cast<uint32_t>(WiFi.dnsIP(0));
-  if (dns.ip.u_addr.ip4.addr == 0) return;
-  esp_netif_dhcps_stop(ap);
-  esp_err_t err = esp_netif_dhcps_option(
-      ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &dns, sizeof(dns));
-  esp_netif_dhcps_start(ap);
-  if (err == ESP_OK) {
-    Serial.print("wifi: ap dhcp dns = ");
-    Serial.println(WiFi.dnsIP(0));
+  if (dns.ip.u_addr.ip4.addr == 0) {
+    Serial.println("wifi: ap dhcp dns skipped: uplink gave no resolver");
+    return;
   }
+  esp_err_t err = esp_netif_dhcps_stop(ap);
+  if (err != ESP_OK && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED) {
+    Serial.print("wifi: ap dhcp dns FAILED: dhcps_stop ");
+    Serial.println(esp_err_to_name(err));
+    dnsFwd.begin(WiFi.dnsIP(0));
+    return;
+  }
+  err = esp_netif_dhcps_option(
+      ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &dns, sizeof(dns));
+  if (err != ESP_OK) {
+    Serial.print("wifi: ap dhcp dns FAILED: dhcps_option ");
+    Serial.println(esp_err_to_name(err));
+    esp_netif_dhcps_start(ap);
+    dnsFwd.begin(WiFi.dnsIP(0));
+    return;
+  }
+  err = esp_netif_dhcps_start(ap);
+  if (err != ESP_OK) {
+    Serial.print("wifi: ap dhcp dns FAILED: dhcps_start ");
+    Serial.println(esp_err_to_name(err));
+    dnsFwd.begin(WiFi.dnsIP(0));
+    return;
+  }
+  Serial.print("wifi: ap dhcp dns = ");
+  Serial.println(WiFi.dnsIP(0));
 }
 
 // A NAT router with the same subnet on both sides silently blackholes
