@@ -1,11 +1,32 @@
 #pragma once
 
-// Status LED patterns (see runtime.cpp). GPIO8 is the on-board LED of
-// the common ESP32-C3 Super Mini carrier boards; C6 Super Mini boards
-// usually wire it to GPIO15. Set to -1 to disable the LED entirely.
-#ifndef STATUS_LED_PIN
-#define STATUS_LED_PIN 8
+// Status LED patterns (see runtime.cpp). Defaults per chip: GPIO8 is
+// the on-board LED of common ESP32-C3 Super Mini carriers, GPIO15 of
+// C6 Super Minis, GPIO2 of classic ESP32 DevKits (same as the relay
+// firmware). Set to -1 to disable the LED entirely.
+//
+// CLASSIC ESP32 WARNING: GPIO6-11 are the SPI flash chip. Driving
+// those kills flash access mid-instruction — TG1WDT reset, no
+// backtrace, bootloop before setup() finishes (bench-verified,
+// 2026-09-29). The #if below refuses such pins at compile time.
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+#define STATUS_LED_DEFAULT 8
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+#define STATUS_LED_DEFAULT 15
+#else
+#define STATUS_LED_DEFAULT 2  // classic ESP32
 #endif
+
+#ifndef STATUS_LED_PIN
+#define STATUS_LED_PIN STATUS_LED_DEFAULT
+#endif
+
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if STATUS_LED_PIN >= 6 && STATUS_LED_PIN <= 11
+#error "STATUS_LED_PIN collides with the classic ESP32 flash pins (GPIO6-11); pick another pin or -1"
+#endif
+#endif
+
 #define STATUS_LED_ACTIVE_LOW 1
 
 // Uplink (station) behaviour — the CAPsMAN-controlled WiFi this device
@@ -113,4 +134,7 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // 0.5.2: the "no enroll.secret" note no longer claims bootstrap is
 // impossible — claim-once (migration 040) deploys on the device uid
 // alone, same as the relay firmware.
-#define FW_VERSION "0.5.2"
+// 0.5.3: STATUS_LED_PIN default per chip — the flat GPIO8 default
+// drove a FLASH data line on classic ESP32 (GPIO6-11 are the flash
+// chip) and TG1WDT-bootlooped the bench board in runtime.start().
+#define FW_VERSION "0.5.3"

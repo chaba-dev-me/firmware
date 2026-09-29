@@ -177,9 +177,13 @@ Same intent as the relay device's fail-safe lamp, applied to links:
 | slow blink (0.8 s) | uplink down |
 | fast blink (0.2 s) | uplink up, MQTT down (bootstrap / credential trouble) |
 
-`STATUS_LED_PIN` defaults to GPIO8 (C3 Super Mini boards; C6 Super
-Mini boards usually wire it to GPIO15) — override in secrets.h or
-config.h, `-1` disables.
+`STATUS_LED_PIN` defaults per chip: GPIO8 (C3 Super Mini), GPIO15
+(C6 Super Mini), GPIO2 (classic ESP32 DevKit, same as the relay
+firmware) — override in secrets.h or config.h, `-1` disables. On the
+classic ESP32, GPIO6–11 are the SPI flash: driving one of those
+mid-boot corrupts flash access and bootloops the chip with a silent
+`TG1WDT_SYS_RESET` (bench-verified 2026-09-29, v0.5.2) — config.h
+now refuses such pins with a compile error on the classic target.
 
 ## MQTT topics and message formats
 
