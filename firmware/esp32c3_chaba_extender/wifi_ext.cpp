@@ -181,6 +181,14 @@ void WifiExtender::startAp() {
   Serial.println(WiFi.softAPIP());
 }
 
+bool WifiExtender::apDhcpRunning() {
+  esp_netif_t* ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+  if (ap == nullptr) return false;
+  esp_netif_dhcp_status_t st;
+  if (esp_netif_dhcps_get_status(ap, &st) != ESP_OK) return false;
+  return st == ESP_NETIF_DHCP_STARTED;
+}
+
 void WifiExtender::enableNapt() {
 #if defined(CONFIG_LWIP_IPV4_NAPT) && CONFIG_LWIP_IPV4_NAPT
   if (_naptEnabled || !_apStarted) return;

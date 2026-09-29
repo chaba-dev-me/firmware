@@ -70,7 +70,11 @@ void DnsForwarder::tick() {
       _queries[slot].atMs = millis();
       _upstream.beginPacket(_upstreamDns, 53);
       _upstream.write(buf, n);
-      _upstream.endPacket();
+      if (_upstream.endPacket() == 1) {
+        _fwd++;
+      } else {
+        _fails++;
+      }
     }
   }
 
@@ -86,6 +90,7 @@ void DnsForwarder::tick() {
         _listener.beginPacket(_queries[slot].client, _queries[slot].port);
         _listener.write(buf, n);
         _listener.endPacket();
+        _replies++;
         _queries[slot].port = 0;  // consumed
       }
       // Unknown txid: stale/duplicate — drop.

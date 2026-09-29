@@ -29,6 +29,10 @@ class WifiExtender {
   bool naptEnabled() const { return _naptEnabled; }
   IPAddress apIp() const { return _apIp; }
   uint8_t apChannel() const { return WiFi.channel(); }
+  // AP DHCP server state for `status` — the silent-killer check: a
+  // client that associated but never got a 192.168.4.x lease looks
+  // exactly like "no internet".
+  bool apDhcpRunning();
   // The SSID actually being broadcast ("mirror" resolved).
   const char* activeApSsid() const { return _activeApSsid; }
 

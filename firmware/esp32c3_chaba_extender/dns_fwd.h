@@ -21,6 +21,13 @@ class DnsForwarder {
   void stop();
   void tick();
   bool running() const { return _running; }
+  // Bench diagnostics: relay health at a glance. replies < fwd means
+  // queries go out but the answers aren't coming back (uplink/route);
+  // fwd stuck at 0 means client queries never reach us (client DHCP/
+  // DNS config).
+  uint32_t queriesForwarded() const { return _fwd; }
+  uint32_t repliesRelayed() const { return _replies; }
+  uint32_t sendFailures() const { return _fails; }
 
  private:
   static const uint8_t MAX_INFLIGHT = 8;
@@ -39,6 +46,9 @@ class DnsForwarder {
   IPAddress _upstreamDns;
   Query _queries[MAX_INFLIGHT];
   bool _running = false;
+  uint32_t _fwd = 0;
+  uint32_t _replies = 0;
+  uint32_t _fails = 0;
 };
 
 extern DnsForwarder dnsFwd;

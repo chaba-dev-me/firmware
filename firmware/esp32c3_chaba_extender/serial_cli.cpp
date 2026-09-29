@@ -2,6 +2,8 @@
 #include "config.h"
 #include "state.h"
 #include "wifi_ext.h"
+#include "dns_fwd.h"
+#include "lwip/stats.h"
 
 void SerialCli::begin(NvsStore* nvs) {
   _nvs = nvs;
@@ -244,6 +246,28 @@ void SerialCli::cmd_status() {
   Serial.println(wifiExt.apClients());
   Serial.print("nat             = ");
   Serial.println(wifiExt.naptEnabled() ? "on" : "off");
+  Serial.print("ap dhcp server  = ");
+  Serial.println(wifiExt.apDhcpRunning() ? "running" : "STOPPED");
+#if LWIP_STATS
+  // The forward-path verdict: with a client attempting traffic, fw
+  // moving means packets ARE being forwarded (problem is return/NAPT);
+  // fw stuck at 0 means they never reach the forward path.
+  Serial.print("ip fwd/drop     = ");
+  Serial.print(lwip_stats.ip.fw);
+  Serial.print(" / ");
+  Serial.println(lwip_stats.ip.drop);
+#endif
+  Serial.print("dns relay       = ");
+  if (dnsFwd.running()) {
+    Serial.print("on, fwd ");
+    Serial.print(dnsFwd.queriesForwarded());
+    Serial.print(", replied ");
+    Serial.print(dnsFwd.repliesRelayed());
+    Serial.print(", send-fails ");
+    Serial.println(dnsFwd.sendFailures());
+  } else {
+    Serial.println("off (dhcp dns option took)");
+  }
   Serial.print("mqtt            = ");
   Serial.println(g_state.mqttConnected ? "connected" : "disconnected");
   Serial.print("uptime          = ");

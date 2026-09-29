@@ -157,4 +157,8 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // (kick-loop suspect #1) is gone and STA power-save is off (beacon
 // loss, suspect #2). Connect counter in the log measures any that
 // remains.
-#define FW_VERSION "0.5.6"
+// 0.5.7: forward-path instrumentation — status now prints the AP DHCP
+// server state, lwIP ip forward/drop counters, and dns relay counters
+// (fwd/replied/fails), so "client has no internet" decomposes into
+// lease / forward / relay with two `status` calls.
+#define FW_VERSION "0.5.7"
