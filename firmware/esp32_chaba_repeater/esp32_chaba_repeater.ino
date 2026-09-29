@@ -24,7 +24,7 @@ void setup() {
   delay(200);
   Serial.println();
   Serial.println("========================================");
-  Serial.print("  ESP32 Chaba Extender v");
+  Serial.print("  ESP32 Chaba Repeater v");
   Serial.println(FW_VERSION);
   Serial.print("  chip ");
   Serial.println(ESP.getChipModel());

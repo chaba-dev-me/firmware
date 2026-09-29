@@ -1,6 +1,6 @@
-# Chaba WiFi Extender — ESP32-C3 / C6 — Design Document
+# Chaba WiFi Repeater — Design Document
 
-Firmware `0.5.0`, first of the extender line. One sketch compiles for
+Firmware `0.5.8`, first of the repeater line. One sketch compiles for
 both the ESP32-C3 (e.g. ESP32-C3-WROOM-02 modules) and the ESP32-C6;
 the chip is detected at runtime and printed by `version`.
 
@@ -70,7 +70,7 @@ choice.
 ## File layout
 
 ```
-esp32c3_chaba_extender.ino   setup()/loop(), banner, NVS defaults
+esp32_chaba_repeater.ino   setup()/loop(), banner, NVS defaults
 config.h                     pins, timing, NVS keys, topics, version
 nvs_store.cpp/.h             NVS wrapper (identical to the relay firmware)
 serial_cli.cpp/.h            the serial CLI (same grammar, relay cmds cut)

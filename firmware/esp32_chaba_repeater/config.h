@@ -161,4 +161,4 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 // server state, lwIP ip forward/drop counters, and dns relay counters
 // (fwd/replied/fails), so "client has no internet" decomposes into
 // lease / forward / relay with two `status` calls.
-#define FW_VERSION "0.5.7"
+#define FW_VERSION "0.5.8"

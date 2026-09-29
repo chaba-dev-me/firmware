@@ -104,7 +104,7 @@ void SerialCli::handleLine() {
 }
 
 void SerialCli::cmd_version() {
-  Serial.print("firmware  = ESP32 Chaba Extender v");
+  Serial.print("firmware  = ESP32 Chaba Repeater v");
   Serial.println(FW_VERSION);
   Serial.print("board     = ESP32-");
   Serial.print(ESP.getChipModel());
@@ -161,7 +161,7 @@ void SerialCli::cmd_show() {
   Serial.println();
   Serial.println("--- configuration ---");
 
-  Serial.print("firmware        = ESP32 Chaba Extender v");
+  Serial.print("firmware        = ESP32 Chaba Repeater v");
   Serial.println(FW_VERSION);
 
   Serial.print("wifi.ssid       = ");
