@@ -9,6 +9,121 @@
 
 WifiExtender wifiExt;
 
+/*
+Post-associate bring-up notes. Each risky call runs as its own tick
+step, and the brackets are Serial.flush()ed on both sides: something
+in these calls has been observed to watchdog-reset the chip
+(rst:0x8 TG1WDT), and unflushed ring-buffer output dies with it.
+The last flushed label is the forensic record of which call fired.
+*/
+void WifiExtender::logStep(const char* phase, const char* name) {
+  Serial.print("wifi: step ");
+  Serial.print(phase);
+  Serial.print(" ");
+  Serial.println(name);
+  Serial.flush();
+}
+
+// One risky operation per tick. The steps only run while the loop is
+// otherwise idle, so a hang inside any one of them is attributable.
+void WifiExtender::runApStep() {
+  switch (_apStep) {
+    case AP_STEP_NONE:
+      return;
+    case AP_STEP_REISSUE:
+      logStep("begin", "reissue-softap");
+      startAp();
+      logStep("done", "reissue-softap");
+      _apStep = AP_STEP_LAN;
+      return;
+    case AP_STEP_LAN:
+      logStep("begin", "lan-conflict");
+      resolveApLanConflict();
+      logStep("done", "lan-conflict");
+      _apStep = AP_STEP_NAPT;
+      return;
+    case AP_STEP_NAPT:
+      logStep("begin", "napt");
+      enableNapt();
+      logStep("done", "napt");
+      _apStep = AP_STEP_DNS;
+      return;
+    case AP_STEP_DNS:
+      logStep("begin", "dhcp-dns");
+      pushDhcpDns();
+      logStep("done", "dhcp-dns");
+      _apStep = AP_STEP_NONE;
+      g_state.stateDirty = true;
+      return;
+  }
+}
+
+void WifiExtender::tick() {
+  unsigned long now = millis();
+  if (now - _lastTickMs < WIFI_TICK_MS) return;
+  _lastTickMs = now;
+
+  runApStep();
+
+  // ---- uplink (station) ----
+  wl_status_t s = WiFi.status();
+  if (s == WL_CONNECTED) {
+    if (!_uplinkConnected) {
+      _uplinkConnected = true;
+      g_state.wifiConnected = true;
+      _rssi = WiFi.RSSI();
+      Serial.print("wifi: uplink connected, IP ");
+      Serial.print(WiFi.localIP());
+      Serial.print(", channel ");
+      Serial.println(WiFi.channel());
+      Serial.flush();
+      // The radio just moved to the uplink's channel and the AP
+      // followed. Bring NAT and DNS up ONE STEP PER TICK — see the
+      // step-machine note above for why each step is bracketed.
+      _apStep = AP_STEP_REISSUE;
+    }
+    _rssi = WiFi.RSSI();
+    g_state.wifiLastGoodMs = now;
+    _staConnecting = false;
+  } else {
+    if (_uplinkConnected) {
+      Serial.print("wifi: uplink lost, status=");
+      Serial.println((int)s);
+      Serial.flush();
+      _uplinkConnected = false;
+      g_state.wifiConnected = false;
+      _naptEnabled = false;  // re-enabled on reconnect
+      g_state.naptEnabled = false;
+      _apStep = AP_STEP_NONE;
+      g_state.stateDirty = true;
+    }
+    if (!_staConnecting) {
+      _staConnecting = true;
+      _connectStartedMs = now;
+      Serial.println("wifi: uplink reconnecting");
+      WiFi.reconnect();
+    } else if (now - _connectStartedMs > WIFI_CONNECT_TIMEOUT_MS) {
+      Serial.println("wifi: uplink timeout, retry");
+      _connectStartedMs = now;
+      WiFi.reconnect();
+    }
+  }
+
+  // ---- broadcast (SoftAP) ----
+  if (_apStarted) {
+    _apIp = WiFi.softAPIP();
+    uint8_t clients = WiFi.softAPgetStationNum();
+    if (clients != _apClients) {
+      Serial.print("wifi: ap clients = ");
+      Serial.println(clients);
+      Serial.flush();
+      _apClients = clients;
+      g_state.apClients = clients;
+      g_state.stateDirty = true;
+    }
+  }
+}
+
 void WifiExtender::begin(const char* uplinkSsid, const char* uplinkPass,
                          const char* apSsid, const char* apPass) {
   strlcpy(_uplinkSsid, uplinkSsid, sizeof(_uplinkSsid));
@@ -127,67 +242,3 @@ void WifiExtender::resolveApLanConflict() {
   Serial.println("wifi: no free fallback LAN left; ap stays colliding");
 }
 
-void WifiExtender::tick() {
-  unsigned long now = millis();
-  if (now - _lastTickMs < WIFI_TICK_MS) return;
-  _lastTickMs = now;
-
-  // ---- uplink (station) ----
-  wl_status_t s = WiFi.status();
-  if (s == WL_CONNECTED) {
-    if (!_uplinkConnected) {
-      _uplinkConnected = true;
-      g_state.wifiConnected = true;
-      _rssi = WiFi.RSSI();
-      Serial.print("wifi: uplink connected, IP ");
-      Serial.print(WiFi.localIP());
-      Serial.print(", channel ");
-      Serial.println(WiFi.channel());
-      // The radio just moved to the uplink's channel and the AP
-      // followed. Re-issue softAP so the AP side is definitely alive
-      // on the new channel, then resolve LAN collisions and wire NAT
-      // and DNS to the uplink.
-      startAp();
-      resolveApLanConflict();
-      enableNapt();
-      pushDhcpDns();
-      g_state.stateDirty = true;
-    }
-    _rssi = WiFi.RSSI();
-    g_state.wifiLastGoodMs = now;
-    _staConnecting = false;
-  } else {
-    if (_uplinkConnected) {
-      Serial.print("wifi: uplink lost, status=");
-      Serial.println((int)s);
-      _uplinkConnected = false;
-      g_state.wifiConnected = false;
-      _naptEnabled = false;  // re-enabled on reconnect
-      g_state.naptEnabled = false;
-      g_state.stateDirty = true;
-    }
-    if (!_staConnecting) {
-      _staConnecting = true;
-      _connectStartedMs = now;
-      Serial.println("wifi: uplink reconnecting");
-      WiFi.reconnect();
-    } else if (now - _connectStartedMs > WIFI_CONNECT_TIMEOUT_MS) {
-      Serial.println("wifi: uplink timeout, retry");
-      _connectStartedMs = now;
-      WiFi.reconnect();
-    }
-  }
-
-  // ---- broadcast (SoftAP) ----
-  if (_apStarted) {
-    _apIp = WiFi.softAPIP();
-    uint8_t clients = WiFi.softAPgetStationNum();
-    if (clients != _apClients) {
-      Serial.print("wifi: ap clients = ");
-      Serial.println(clients);
-      _apClients = clients;
-      g_state.apClients = clients;
-      g_state.stateDirty = true;
-    }
-  }
-}

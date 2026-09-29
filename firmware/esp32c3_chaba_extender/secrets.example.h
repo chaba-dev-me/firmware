@@ -1,7 +1,7 @@
 #pragma once
 
-#define DEFAULT_WIFI_SSID ""
-#define DEFAULT_WIFI_PASS ""
+#define DEFAULT_WIFI_SSID "The1stWorld"
+#define DEFAULT_WIFI_PASS "HereBeDragons@TheFarm"
 
 // Optional: pin the broadcast SSID at flash time. Leave "" to mirror
 // the uplink SSID (the default; changeable via `set ap ssid`).

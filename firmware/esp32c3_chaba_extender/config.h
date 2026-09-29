@@ -107,4 +107,7 @@ static const uint8_t AP_LAN_FALLBACKS[][4] = {
 #define TOPIC_STATE_FMT "tenants/%s/devices/%s/state"
 
 // First device of the extender line; the relay firmware stays on 0.4.x.
-#define FW_VERSION "0.5.0"
+// 0.5.1: post-associate bring-up spread one step per tick with flushed
+// forensic labels — v0.5.0 bootlooped (rst:0x8 TG1WDT) somewhere in the
+// transition block and its unflushed log died with it.
+#define FW_VERSION "0.5.1"

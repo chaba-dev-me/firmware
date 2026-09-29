@@ -75,6 +75,7 @@ void Runtime::start() {
 
   _started = true;
   Serial.println("runtime: started");
+  Serial.flush();
 }
 
 // Load the MQTT-side NVS keys and bring the client up. Returns false

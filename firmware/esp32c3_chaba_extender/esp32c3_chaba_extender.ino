@@ -26,9 +26,12 @@ void setup() {
   Serial.println("========================================");
   Serial.print("  ESP32 Chaba Extender v");
   Serial.println(FW_VERSION);
+  Serial.print("  chip ");
+  Serial.println(ESP.getChipModel());
   Serial.print("  built ");
   Serial.println(__DATE__ " " __TIME__);
   Serial.println("========================================");
+  Serial.flush();
 
   nvs.begin();
   cli.begin(&nvs);
@@ -65,6 +68,7 @@ void setup() {
   runtime.start();
 
   Serial.println("CLI ready. type 'help'");
+  Serial.flush();
   Serial.print(SERIAL_PROMPT);
 }
 

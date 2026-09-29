@@ -33,10 +33,23 @@ class WifiExtender {
   const char* activeApSsid() const { return _activeApSsid; }
 
  private:
+  // Post-associate bring-up runs ONE step per tick, each bracketed by
+  // flushed log lines. If the radio/driver watchdog-resets inside a
+  // step, the last flushed label names the call that killed it — a
+  // plain Serial.println is lost in the TX ring buffer on reset.
+  enum ApStep : uint8_t {
+    AP_STEP_NONE = 0,
+    AP_STEP_REISSUE,   // re-issue softAP after the channel move
+    AP_STEP_LAN,       // resolve uplink/AP subnet collision
+    AP_STEP_NAPT,      // enable NAT on the AP address
+    AP_STEP_DNS,       // point ap dhcp dns at the uplink resolver
+  };
   void startAp();
   void enableNapt();
   void pushDhcpDns();
   void resolveApLanConflict();
+  void runApStep();
+  static void logStep(const char* phase, const char* name);
 
   char _uplinkSsid[64] = "";
   char _uplinkPass[64] = "";
@@ -50,6 +63,7 @@ class WifiExtender {
   bool _naptEnabled = false;
   bool _apStarted = false;
   IPAddress _apIp;
+  ApStep _apStep = AP_STEP_NONE;
 
   bool _staConnecting = false;
   unsigned long _connectStartedMs = 0;
