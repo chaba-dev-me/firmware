@@ -10,6 +10,20 @@ re-broadcasts the site network).
 Current firmware versions: relay sketches **0.4.8**, repeater **0.5.8**
 (independent version lines).
 
+## About Chaba
+
+These sketches are the open-source device firmware for
+[Chaba](https://chaba.me) — home & farm automation on WhatsApp. A Chaba
+setup is small relay boxes wired to your pumps, gates, geysers and lights;
+you control them by chatting with an AI on WhatsApp or from the Chaba web
+app, and the devices on the other end run firmware from this repo: it
+joins your WiFi, talks MQTT, and provisions itself over USB serial — no
+reflashing to move the box or change its identity.
+
+You can buy ready-made Chaba devices or bring your own ESP32/ESP-01
+hardware and flash it yourself — everything here is MIT-licensed. See
+**<https://chaba.me>** for the product, the plans, and the handbook.
+
 ## Sketches
 
 | Sketch | Target | Purpose |
